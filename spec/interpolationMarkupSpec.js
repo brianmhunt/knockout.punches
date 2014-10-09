@@ -301,6 +301,27 @@ describe("Interpolation Markup bindings", function() {
             expect(testNode).toContainText("hello name");
         });
     });
+
+    describe("The if/ifnot comment", function () {
+        it("Should not modify the conditional content", function () {
+            jasmine.setNodeText(testNode, "A {{#if '123'}}Conditional{{/if}} B");
+            ko.applyBindings(null, testNode);
+            expect(testNode).toContainText("A Conditional B");
+        })
+
+        it("Should add a comment with the condition", function () {
+            jasmine.setNodeText(testNode, "A {{#if '123'}}Conditional{{/if}} B");
+            ko.applyBindings(null, testNode);
+            expect(testNode).toContainHtml("a <!--ko if:'123'--><!--ko-condition:if:'123'-->conditional<!--/ko-->b");
+        })
+    })
+    describe('The {{ else }} binding', function () {
+        it("Should close and invert last conditional", function () {
+            jasmine.setNodeText(testNode, "A {{#if '42'}}X{{ else }}Y{{/if}} B");
+            ko.applyBindings(null, testNode);
+            expect(testNode).toContainHtml("a <!--ko if:'42'--><!--ko-condition:if:'42'-->conditional<!--/ko-->b");
+        })
+    })
 });
 
 describe("Attribute Interpolation Markup preprocessor", function() {

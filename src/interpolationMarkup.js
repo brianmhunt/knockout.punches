@@ -71,6 +71,7 @@ if (!ko.virtualElements.allowedBindings.html) {
     ko.virtualElements.allowedBindings.html = true;
 }
 
+var koConditionComment = 'ko-condition:';
 function wrapExpression(expressionText, node) {
     var ownerDocument = node ? node.ownerDocument : document,
         closeComment = true,
@@ -79,9 +80,25 @@ function wrapExpression(expressionText, node) {
         firstChar = expressionText[0],
         lastChar = expressionText[expressionText.length - 1],
         result = [],
+        isConditionalComment = false,
+        prevIfNode = null,
         matches;
 
-    if (firstChar === '#') {
+    if (expressionText === 'else') {
+        prevIfNode = node.previousSibling;
+        while (prevIfNode) {
+            if (prevIfNode.nodeType === 8) {
+                if (matches = (prevIfNode.textContent || prevIfNode.innerText).match(/ko-condition:(if|ifnot):(.*)/)) {
+                    break;
+                }
+            }
+            prevIfNode = prevIfNode.previousSibling;
+        }
+        if (matches) {
+            result.push(ownerDocument.createComment("/ko "));
+            result.push(ownerDocument.createComment("ko " + matches[1] == 'if' ? 'ifnot' : 'if' + ":" + matches[2]));            
+        }
+    } else if (firstChar === '#') {
         if (lastChar === '/') {
             binding = expressionText.slice(1, -1);
         } else {
@@ -90,6 +107,7 @@ function wrapExpression(expressionText, node) {
         }
         if (matches = binding.match(/^([^,"'{}()\/:[\]\s]+)\s+([^\s:].*)/)) {
             binding = matches[1] + ':' + matches[2];
+            isConditionalComment = matches[1].match(/^\s*(if|ifnot)?\s*$/) && node.nodeType === 3;
         }
     } else if (firstChar === '/') {
         // replace only with a closing comment
@@ -101,8 +119,12 @@ function wrapExpression(expressionText, node) {
 
     if (binding)
         result.push(ownerDocument.createComment("ko " + binding));
+    if (isConditionalComment) {
+        result.push(ownerDocument.createComment(koConditionComment + binding))
+    }
     if (closeComment)
         result.push(ownerDocument.createComment("/ko"));
+    
     return result;
 };
 
